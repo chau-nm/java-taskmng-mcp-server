@@ -16,13 +16,13 @@ public class Main {
         TaskManager taskManager = new TaskManager();
 
         List<McpTool> tools = List.of(
-                new CountTaskTool(taskManager, jsonMapper),
+                new CountTaskTool(taskManager),
                 new FindAllTaskTool(taskManager, jsonMapper),
                 new FindTaskByIdTool(taskManager, jsonMapper),
                 new FilterTaskTool(taskManager, jsonMapper),
                 new AddTaskTool(taskManager, jsonMapper),
                 new UpdateTaskTool(taskManager, jsonMapper),
-                new RemoveTaskTool(taskManager, jsonMapper)
+                new RemoveTaskTool(taskManager)
         );
 
         StdioServerTransportProvider transportProvider = new StdioServerTransportProvider(jsonMapper);

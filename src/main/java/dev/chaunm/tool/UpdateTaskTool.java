@@ -4,40 +4,63 @@ import dev.chaunm.core.Task;
 import dev.chaunm.core.TaskManager;
 import dev.chaunm.core.TaskStatus;
 import io.modelcontextprotocol.json.McpJsonMapper;
+import io.modelcontextprotocol.server.McpSyncServerExchange;
 import io.modelcontextprotocol.spec.McpSchema;
 
+import java.io.IOException;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
-public class UpdateTaskTool extends TaskTool {
+public class UpdateTaskTool implements McpTool {
+    private final TaskManager taskManager;
+    private final McpJsonMapper jsonMapper;
 
     public UpdateTaskTool(TaskManager taskManager, McpJsonMapper jsonMapper) {
-        super(taskManager, jsonMapper);
+        this.taskManager = taskManager;
+        this.jsonMapper = jsonMapper;
     }
 
     @Override
     public McpSchema.Tool definition() {
-        return McpSchema.Tool.builder("update_task", schema(props(
-                        "id", idProperty(),
-                        "name", nameProperty("New task name"),
-                        "status", statusProperty()), "id"))
-                .description("Change the name and/or status of a task and return the updated task. "
-                        + "Fields left out keep their current value.")
-                .annotations(annotations(false, false, true))
+        return McpSchema.Tool.builder("update_task", Map.of(
+                        "type", "object",
+                        "properties", Map.of(
+                                "id", Map.of("type", "integer"),
+                                "name", Map.of("type", "string"),
+                                "status", Map.of("type", "string", "enum", List.of(
+                                        "TODO", "DOING", "DONE", "PENDING", "CANCEL"))),
+                        "required", List.of("id", "name", "status")))
+                .description("Set the name and status of a task and return the updated task")
                 .build();
     }
 
     @Override
-    protected Object execute(Map<String, Object> args) {
-        Task task = findTask(requiredId(args));
-        String name = optionalString(args, "name");
-        TaskStatus status = optionalStatus(args);
-        if (name == null && status == null) {
-            throw new ToolException("Give name and/or status to update.");
+    public McpSchema.CallToolResult call(McpSyncServerExchange exchange, McpSchema.CallToolRequest request) {
+        Map<String, Object> args = request.arguments();
+        long id = ((Number) args.get("id")).longValue();
+        String name = (String) args.get("name");
+        TaskStatus status = TaskStatus.valueOf((String) args.get("status"));
+
+        Optional<Task> task = taskManager.findById(id);
+        if (task.isEmpty()) {
+            return McpSchema.CallToolResult.builder()
+                    .addTextContent("Task " + id + " not found")
+                    .isError(true)
+                    .build();
         }
-        // TaskManager.update overwrites both fields, so pass the current value for the one left out
-        taskManager.update(task.getId(),
-                name != null ? name : task.getName(),
-                status != null ? status : task.getStatus());
-        return task;
+
+        taskManager.update(id, name, status);
+
+        try {
+            return McpSchema.CallToolResult.builder()
+                    .addTextContent(jsonMapper.writeValueAsString(task.get()))
+                    .build();
+        } catch (IOException e) {
+            return McpSchema.CallToolResult.builder()
+                    .addTextContent("Task updated but could not be read: " + e.getMessage())
+                    .isError(true)
+                    .build();
+        }
     }
 }
