@@ -8,9 +8,13 @@ public class Task {
     private TaskStatus status;
 
     public Task(String name) {
+        this(name, TaskStatus.TODO);
+    }
+
+    public Task(String name, TaskStatus status) {
         this.id = getNextId();
         this.name = name;
-        this.status = TaskStatus.TODO;
+        this.status = status;
     }
 
     private long getNextId() {

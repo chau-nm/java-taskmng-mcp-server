@@ -5,7 +5,16 @@ import java.util.List;
 import java.util.Optional;
 
 public class TaskManager {
-    private final List<Task> tasks = new ArrayList<>();
+    // Wrapped in ArrayList because List.of is immutable and add/remove would throw
+    private final List<Task> tasks = new ArrayList<>(List.of(
+            new Task("Set up the project repository", TaskStatus.DONE),
+            new Task("Write the MCP server with the Java SDK", TaskStatus.DOING),
+            new Task("Add the find_all_task tool", TaskStatus.DOING),
+            new Task("Write unit tests for TaskManager"),
+            new Task("Connect the server to Claude Code"),
+            new Task("Write the README", TaskStatus.PENDING),
+            new Task("Support the 2026-07-28 protocol", TaskStatus.CANCEL)
+    ));
 
     public TaskManager() {}
 
